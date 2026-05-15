@@ -11,22 +11,23 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
 
-  // Get member + company
-  const { data: member } = await supabase
+  // Get member + company (use admin to bypass RLS)
+  const adminClient = createAdminClient()
+  const { data: member, error: memberError } = await adminClient
     .from('members')
     .select('company_id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (!member) return NextResponse.json({ error: 'Membro nao encontrado' }, { status: 404 })
+  if (memberError || !member) return NextResponse.json({ error: 'Membro nao encontrado' }, { status: 404 })
 
   // Get active WABA connection
-  const { data: waba } = await supabase
+  const { data: waba } = await adminClient
     .from('waba_connections')
     .select('*')
     .eq('company_id', member.company_id)
     .eq('is_active', true)
-    .single()
+    .maybeSingle()
 
   // If sync requested and WABA exists, fetch from Meta API
   if (sync && waba?.access_token && waba?.waba_id) {
@@ -38,21 +39,23 @@ export async function GET(request: Request) {
       if (metaRes.ok) {
         const metaData = await metaRes.json()
         const templates = metaData.data || []
-        const adminClient = createAdminClient()
 
         // Upsert all templates
         for (const tpl of templates) {
-          await adminClient.from('wa_templates').upsert({
-            company_id: member.company_id,
-            waba_connection_id: waba.id,
-            template_id: tpl.id,
-            name: tpl.name,
-            language: tpl.language,
-            category: tpl.category,
-            status: tpl.status,
-            components: tpl.components || [],
-            synced_at: new Date().toISOString(),
-          }, { onConflict: 'company_id,template_id' })
+          await adminClient.from('wa_templates').upsert(
+            {
+              company_id: member.company_id,
+              waba_connection_id: waba.id,
+              template_id: tpl.id,
+              name: tpl.name,
+              language: tpl.language,
+              category: tpl.category,
+              status: tpl.status,
+              components: tpl.components || [],
+              synced_at: new Date().toISOString(),
+            },
+            { onConflict: 'template_id' }
+          )
         }
       }
     } catch (err) {
@@ -61,7 +64,7 @@ export async function GET(request: Request) {
   }
 
   // Return from DB
-  const { data: templates, error } = await supabase
+  const { data: templates, error } = await adminClient
     .from('wa_templates')
     .select('*')
     .eq('company_id', member.company_id)
