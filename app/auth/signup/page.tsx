@@ -54,6 +54,8 @@ export default function SignupPage() {
       if (authError) {
         if (authError.message.includes('already registered')) {
           toast.error('Este email ja esta cadastrado')
+        } else if (authError.message.includes('rate limit')) {
+          toast.error('Muitas tentativas. Aguarde alguns minutos e tente novamente.')
         } else {
           toast.error(authError.message)
         }
