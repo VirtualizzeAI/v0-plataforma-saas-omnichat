@@ -19,17 +19,6 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  function generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
-      .substring(0, 50)
-      + '-' + Math.random().toString(36).substring(2, 8)
-  }
-
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setIsLoading(true)
@@ -37,13 +26,11 @@ export default function SignupPage() {
     try {
       const supabase = createClient()
       
-      // 1. Create user
+      // 1. Create user with autoconfirm (no email verification needed)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? 
-            `${window.location.origin}/auth/callback`,
           data: {
             name,
             company_name: companyName,
@@ -54,8 +41,6 @@ export default function SignupPage() {
       if (authError) {
         if (authError.message.includes('already registered')) {
           toast.error('Este email ja esta cadastrado')
-        } else if (authError.message.includes('rate limit')) {
-          toast.error('Muitas tentativas. Aguarde alguns minutos e tente novamente.')
         } else {
           toast.error(authError.message)
         }
@@ -67,51 +52,24 @@ export default function SignupPage() {
         return
       }
 
-      // 2. Create company
-      const slug = generateSlug(companyName)
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name: companyName,
-          slug,
-        })
-        .select()
-        .single()
+      // 2. Call API to create company and member (bypasses RLS with service role)
+      const response = await fetch('/api/auth/setup-company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: authData.user.id,
+          userEmail: email,
+          userName: name,
+          companyName,
+        }),
+      })
 
-      if (companyError) {
-        toast.error('Erro ao criar empresa: ' + companyError.message)
+      const result = await response.json()
+
+      if (!response.ok) {
+        toast.error(result.error || 'Erro ao configurar empresa')
         return
       }
-
-      // 3. Create member (owner)
-      const { error: memberError } = await supabase
-        .from('members')
-        .insert({
-          user_id: authData.user.id,
-          company_id: companyData.id,
-          role: 'owner',
-          name,
-          email,
-        })
-
-      if (memberError) {
-        toast.error('Erro ao criar membro: ' + memberError.message)
-        return
-      }
-
-      // 4. Create default sectors
-      await supabase.from('sectors').insert([
-        { company_id: companyData.id, name: 'Vendas', color: '#3b82f6' },
-        { company_id: companyData.id, name: 'Suporte', color: '#10b981' },
-        { company_id: companyData.id, name: 'Financeiro', color: '#f59e0b' },
-      ])
-
-      // 5. Create default tags
-      await supabase.from('tags').insert([
-        { company_id: companyData.id, name: 'Urgente', color: '#ef4444' },
-        { company_id: companyData.id, name: 'Importante', color: '#f59e0b' },
-        { company_id: companyData.id, name: 'Novo', color: '#3b82f6' },
-      ])
 
       toast.success('Conta criada com sucesso!')
       router.push('/dashboard')
