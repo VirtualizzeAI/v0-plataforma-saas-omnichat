@@ -105,6 +105,10 @@ export default function WabaSettingsPage() {
 
     setIsSaving(true)
     try {
+      // Generate a random webhook verify token
+      const webhookVerifyToken = Math.random().toString(36).substring(2, 15) + 
+                                  Math.random().toString(36).substring(2, 15)
+      
       const supabase = createClient()
       const { error } = await supabase.from('waba_connections').insert({
         company_id: company.id,
@@ -113,6 +117,7 @@ export default function WabaSettingsPage() {
         phone_number: formData.phone_number,
         display_name: formData.display_name || null,
         access_token: formData.access_token || null,
+        webhook_verify_token: webhookVerifyToken,
       })
 
       if (error) {
