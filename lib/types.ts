@@ -123,6 +123,67 @@ export interface AuthUser {
   }
 }
 
+// WhatsApp Template types
+export interface WaTemplateComponent {
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS'
+  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'
+  text?: string
+  buttons?: { type: string; text: string; url?: string; phone_number?: string }[]
+  example?: { header_handle?: string[]; body_text?: string[][] }
+}
+
+export interface WaTemplate {
+  id: string
+  company_id: string
+  waba_connection_id: string | null
+  template_id: string
+  name: string
+  language: string
+  category: string
+  status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'PAUSED'
+  components: WaTemplateComponent[]
+  synced_at: string
+}
+
+// Broadcast types
+export interface Broadcast {
+  id: string
+  company_id: string
+  waba_connection_id: string | null
+  created_by: string
+  name: string
+  template_id: string
+  template_name: string
+  template_language: string
+  template_variables: Record<string, string>
+  status: 'draft' | 'sending' | 'completed' | 'failed' | 'cancelled'
+  source: 'contacts' | 'spreadsheet'
+  total_contacts: number
+  sent_count: number
+  delivered_count: number
+  read_count: number
+  error_count: number
+  estimated_cost: number
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BroadcastContact {
+  id: string
+  broadcast_id: string
+  contact_id: string | null
+  phone: string
+  name: string | null
+  variables: Record<string, string>
+  status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+  error_message: string | null
+  waba_message_id: string | null
+  sent_at: string | null
+  created_at: string
+}
+
 // App context types
 export interface AppContext {
   user: AuthUser | null
