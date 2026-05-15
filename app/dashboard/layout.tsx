@@ -9,28 +9,36 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (authError || !user) {
+    console.log('[v0] No user found, redirecting to login')
     redirect('/auth/login')
   }
 
+  console.log('[v0] User found:', user.id)
+
   // Check if user has a member record
-  const { data: member, error } = await supabase
+  const { data: member, error: memberError } = await supabase
     .from('members')
     .select('id, company_id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle() // Use maybeSingle instead of single to avoid errors
 
-  if (error && error.code === 'PGRST116') {
-    // No member record found - redirect to create company
+  console.log('[v0] Member query result:', { member, memberError })
+
+  if (memberError) {
+    console.error('[v0] Error fetching member:', memberError)
     redirect('/auth/signup')
   }
 
   if (!member) {
+    console.log('[v0] No member record found for user, redirecting to signup')
     // No member record - redirect to create company
     redirect('/auth/signup')
   }
+
+  console.log('[v0] Member found, loading dashboard')
 
   return (
     <AppProvider>

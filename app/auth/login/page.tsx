@@ -22,23 +22,36 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
+      console.log('[v0] Starting login...')
       const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log('[v0] Login response:', { data, error })
+
       if (error) {
+        console.error('[v0] Login error:', error)
         toast.error(error.message === 'Invalid login credentials' 
           ? 'Email ou senha incorretos' 
           : error.message)
+        setIsLoading(false)
         return
       }
 
+      console.log('[v0] Login successful, waiting 1 second before redirect...')
+      
+      // Wait a bit for the session to be stored
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
       toast.success('Login realizado com sucesso!')
-      router.push('/dashboard')
+      
+      console.log('[v0] Refreshing and pushing to dashboard...')
       router.refresh()
-    } catch {
+      router.push('/dashboard')
+    } catch (err) {
+      console.error('[v0] Catch error:', err)
       toast.error('Erro ao fazer login. Tente novamente.')
     } finally {
       setIsLoading(false)
