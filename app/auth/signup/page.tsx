@@ -24,42 +24,14 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      const supabase = createClient()
-      
-      // 1. Create user with autoconfirm (no email verification needed)
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-            company_name: companyName,
-          },
-        },
-      })
-
-      if (authError) {
-        if (authError.message.includes('already registered')) {
-          toast.error('Este email ja esta cadastrado')
-        } else {
-          toast.error(authError.message)
-        }
-        return
-      }
-
-      if (!authData.user) {
-        toast.error('Erro ao criar usuario')
-        return
-      }
-
-      // 2. Call API to create company and member (bypasses RLS with service role)
-      const response = await fetch('/api/auth/setup-company', {
+      // Call API to create user, company, and member (all server-side, no emails)
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: authData.user.id,
-          userEmail: email,
-          userName: name,
+          email,
+          password,
+          name,
           companyName,
         }),
       })
@@ -67,7 +39,20 @@ export default function SignupPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        toast.error(result.error || 'Erro ao configurar empresa')
+        toast.error(result.error || 'Erro ao criar conta')
+        return
+      }
+
+      // Now sign in the user
+      const supabase = createClient()
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        toast.error('Conta criada! Faca login para continuar.')
+        router.push('/auth/login')
         return
       }
 
