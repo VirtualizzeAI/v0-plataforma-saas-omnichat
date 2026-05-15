@@ -51,12 +51,14 @@ export default function SignupPage() {
       })
 
       if (signInError) {
-        toast.error('Conta criada! Faca login para continuar.')
+        console.error('[v0] Sign in error after signup:', signInError)
+        toast.error('Conta criada! Faça login para continuar.')
         router.push('/auth/login')
         return
       }
 
       toast.success('Conta criada com sucesso!')
+      // Refresh to get the updated session
       router.push('/dashboard')
       router.refresh()
     } catch (error) {

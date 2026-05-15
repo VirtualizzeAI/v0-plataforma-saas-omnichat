@@ -16,14 +16,19 @@ export default async function DashboardLayout({
   }
 
   // Check if user has a member record
-  const { data: member } = await supabase
+  const { data: member, error } = await supabase
     .from('members')
-    .select('id')
+    .select('id, company_id')
     .eq('user_id', user.id)
     .single()
 
+  if (error && error.code === 'PGRST116') {
+    // No member record found - redirect to create company
+    redirect('/auth/signup')
+  }
+
   if (!member) {
-    // User exists but no member record - redirect to create company
+    // No member record - redirect to create company
     redirect('/auth/signup')
   }
 
