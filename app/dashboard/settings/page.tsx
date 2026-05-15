@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Building2, User, Users, Loader2, Plus, Trash2, Mail } from 'lucide-react'
+import { Building2, User, Users, Loader2, Plus, Trash2 } from 'lucide-react'
 
 interface Member {
   id: string
@@ -180,7 +180,7 @@ export default function SettingsPage() {
     }
   }
 
-  const handleRemoveMember = async (memberId: string) {
+  const handleRemoveMember = async (memberId: string) => {
     if (!confirm('Tem certeza que deseja remover este membro?')) {
       return
     }
