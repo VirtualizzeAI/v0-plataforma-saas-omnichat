@@ -57,7 +57,6 @@ export async function GET(request: Request) {
           
           const { error: upsertError } = await adminClient.from('wa_templates').upsert(
             {
-              id: tpl.id,
               company_id: member.company_id,
               waba_connection_id: waba.id,
               template_id: tpl.id,
@@ -68,7 +67,7 @@ export async function GET(request: Request) {
               components: tpl.components || [],
               synced_at: new Date().toISOString(),
             },
-            { onConflict: 'template_id' }
+            { onConflict: 'company_id,template_id' }
           )
           
           if (upsertError) {
