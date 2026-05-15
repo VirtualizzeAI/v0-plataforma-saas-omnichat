@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { AppProvider } from '@/lib/context/app-context'
 import { AppShell } from '@/components/app-shell'
 
@@ -16,16 +15,14 @@ export default async function DashboardLayout({
     redirect('/auth/login')
   }
 
-  // Use admin client to bypass RLS and check if user has a member record
-  const admin = createAdminClient()
-  const { data: member, error: memberError } = await admin
+  // Check if user has a member record
+  const { data: member, error: memberError } = await supabase
     .from('members')
     .select('id, company_id')
     .eq('user_id', user.id)
     .maybeSingle()
 
   if (memberError) {
-    console.error('[v0] Error fetching member:', memberError)
     redirect('/auth/signup')
   }
 
