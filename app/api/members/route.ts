@@ -46,12 +46,13 @@ export async function POST(request: Request) {
         name,
         email,
         role,
-        user_id: '00000000-0000-0000-0000-000000000000', // Placeholder UUID
+        user_id: null, // Allow null for invited members without accounts
       })
       .select()
       .single()
 
     if (error) {
+      console.error('[v0] Insert error details:', error)
       throw error
     }
 
